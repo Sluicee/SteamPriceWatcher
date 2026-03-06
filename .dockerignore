@@ -1,0 +1,23 @@
+# Env and secrets — use env_file or pass at runtime
+.env
+.env.*
+!.env.example
+
+# Git and IDE
+.git
+.gitignore
+.cursor
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+
+# Local data (mounted as volume in compose)
+data/
+
+# Docs (optional to keep image small)
+*.md
+!README.md

@@ -1,0 +1,9 @@
+services:
+  watcher:
+    build: .
+    image: steam-price-watcher
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    # One-shot: docker compose run --rm watcher python main.py --once
