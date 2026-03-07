@@ -24,9 +24,9 @@ class TelegramNotifier(Notifier):
         new_price: float,
         percent: float,
     ) -> None:
-        # Prefer preformatted message (plain); otherwise build safe HTML
+        # Prefer preformatted message (HTML); send with HTML parse mode
         if message:
-            asyncio.run(self._send(message, parse_mode=None))
+            asyncio.run(self._send(message, parse_mode=ParseMode.HTML))
         else:
             direction = "📈" if percent >= 0 else "📉"
             text = (

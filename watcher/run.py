@@ -67,6 +67,7 @@ def run_once(
     app_id: int,
     threshold_percent: float,
     notify_on_drop: bool,
+    min_price_usd: float = 0.0,
 ) -> None:
     """
     Single iteration: load inventory, get prices, compare with reference, notify when needed.
@@ -85,6 +86,9 @@ def run_once(
             store.set_last_price(name, app_id, new_price)
             continue
         percent = _percent_change(old_price, new_price)
+        if new_price < min_price_usd:
+            # Дешёвые предметы не уведомляем и референс не обновляем
+            continue
         if percent >= threshold_percent:
             message = _format_message(name, old_price, new_price, percent)
             notifier.notify(message, name, old_price, new_price, percent)
@@ -105,6 +109,7 @@ def run_loop(
     threshold_percent: float,
     notify_on_drop: bool,
     interval_minutes: int,
+    min_price_usd: float = 0.0,
 ) -> None:
     """Run watcher every interval_minutes until interrupted."""
     interval_seconds = interval_minutes * 60
@@ -118,6 +123,7 @@ def run_loop(
             app_id=app_id,
             threshold_percent=threshold_percent,
             notify_on_drop=notify_on_drop,
+            min_price_usd=min_price_usd,
         )
         print("[Watcher] Следующая проверка через {} мин.".format(interval_minutes), flush=True)
         time.sleep(interval_seconds)

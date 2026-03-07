@@ -19,6 +19,7 @@ class Settings:
     threshold_percent: float
     poll_interval_minutes: int
     notify_on_drop: bool
+    min_price_usd: float
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -30,6 +31,7 @@ class Settings:
         threshold_str = os.getenv("THRESHOLD_PERCENT", "50").strip()
         poll_str = os.getenv("POLL_INTERVAL_MINUTES", "10").strip()
         notify_drop = os.getenv("NOTIFY_ON_DROP", "false").strip().lower() in ("true", "1", "yes")
+        min_price_str = os.getenv("MIN_PRICE_USD", "0").strip()
 
         if not steam_api_key:
             raise ValueError("STEAM_API_KEY is required")
@@ -59,6 +61,13 @@ class Settings:
         if poll_interval_minutes < 1:
             raise ValueError("POLL_INTERVAL_MINUTES must be >= 1")
 
+        try:
+            min_price_usd = float(min_price_str)
+        except ValueError:
+            raise ValueError(f"MIN_PRICE_USD must be a number, got: {min_price_str}")
+        if min_price_usd < 0:
+            raise ValueError("MIN_PRICE_USD must be >= 0")
+
         return cls(
             steam_api_key=steam_api_key,
             telegram_bot_token=telegram_bot_token,
@@ -68,6 +77,7 @@ class Settings:
             threshold_percent=threshold_percent,
             poll_interval_minutes=poll_interval_minutes,
             notify_on_drop=notify_drop,
+            min_price_usd=min_price_usd,
         )
 
 

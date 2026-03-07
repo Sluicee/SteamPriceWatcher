@@ -57,6 +57,7 @@ cp .env.example .env
 | `THRESHOLD_PERCENT` | Порог изменения цены в % для уведомления |
 | `POLL_INTERVAL_MINUTES` | Интервал опроса в минутах |
 | `NOTIFY_ON_DROP` | Уведомлять при падении цены (true/false) |
+| `MIN_PRICE_USD` | Минимальная цена в USD для уведомлений (0 = без фильтра) |
 
 ## Структура
 

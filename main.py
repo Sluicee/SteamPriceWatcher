@@ -44,6 +44,7 @@ def main() -> None:
             app_id=settings.app_id,
             threshold_percent=settings.threshold_percent,
             notify_on_drop=settings.notify_on_drop,
+            min_price_usd=settings.min_price_usd,
         )
     else:
         run_loop(
@@ -55,6 +56,7 @@ def main() -> None:
             threshold_percent=settings.threshold_percent,
             notify_on_drop=settings.notify_on_drop,
             interval_minutes=settings.poll_interval_minutes,
+            min_price_usd=settings.min_price_usd,
         )
 
 
