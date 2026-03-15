@@ -1,4 +1,4 @@
-"""Steam inventory and market data fetching (SteamApis)."""
+"""Steam inventory and market data (SteamApis or Steam Official)."""
 
 from steam.client import SteamClient
 from steam.inventory import fetch_inventory

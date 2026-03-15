@@ -29,7 +29,9 @@ def log_inventory_snapshot(
         return
 
     try:
-        prices = steam_client.get_market_prices(app_id, use_cache=False)
+        prices = steam_client.get_market_prices(
+            app_id, item_names=names, use_cache=False
+        )
     except Exception as e:
         print(f"Ошибка загрузки цен: {e}", flush=True)
         return
@@ -76,7 +78,9 @@ def run_once(
     names = steam_client.get_inventory_market_names(steam_id, app_id)
     if not names:
         return
-    prices = steam_client.get_market_prices(app_id, use_cache=True)
+    prices = steam_client.get_market_prices(
+        app_id, item_names=names, use_cache=True
+    )
     for name in names:
         new_price = prices.get(name, 0.0)
         if new_price <= 0:

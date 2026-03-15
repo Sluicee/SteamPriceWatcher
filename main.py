@@ -25,14 +25,19 @@ def main() -> None:
         print(f"Ошибка конфигурации: {e}", file=sys.stderr)
         sys.exit(1)
 
-    steam_client = SteamClient(api_key=settings.steam_api_key)
+    steam_client = SteamClient(settings)
     store = SQLitePriceStore()
     notifier = TelegramNotifier(
         bot_token=settings.telegram_bot_token,
         chat_id=settings.telegram_chat_id,
     )
 
-    print("Steam Price Watcher запущен (Steam ID: {}, App ID: {})".format(settings.steam_id, settings.app_id), flush=True)
+    print(
+        "Steam Price Watcher запущен (provider: {}, Steam ID: {}, App ID: {})".format(
+            settings.steam_provider, settings.steam_id, settings.app_id
+        ),
+        flush=True,
+    )
     log_inventory_snapshot(steam_client, settings.steam_id, settings.app_id)
 
     if args.once:

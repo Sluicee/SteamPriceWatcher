@@ -5,14 +5,16 @@
 ## Требования
 
 - Python 3.10+ (или Docker)
-- API-ключ (например [SteamApis](https://steamapis.com)) для инвентаря и цен
+- Источник данных Steam (один из двух):
+  - **steamapis** — [SteamApis](https://steamapis.com): один ключ, мало запросов, но бесплатный лимит маленький
+  - **steam_official** — бесплатный [Steam Web API key](https://steamcommunity.com/dev/apikey) + запросы к маркету по каждому предмету (с паузой между запросами)
 - Telegram-бот (токен от @BotFather) и chat_id для уведомлений
 
 ## Запуск в Docker (рекомендуется)
 
 ```bash
 cp .env.example .env
-# Отредактируйте .env (STEAM_API_KEY, TELEGRAM_*, STEAM_ID, APP_ID и т.д.)
+# Отредактируйте .env (STEAM_PROVIDER, ключи API, TELEGRAM_*, STEAM_ID, APP_ID и т.д.)
 
 # Сборка и запуск в фоне (цикл с интервалом из конфига)
 docker compose up -d --build
@@ -31,7 +33,7 @@ docker compose logs -f watcher
 ```bash
 pip install -r requirements.txt
 cp .env.example .env
-# Отредактируйте .env: STEAM_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, STEAM_ID, APP_ID, THRESHOLD_PERCENT
+# Отредактируйте .env: STEAM_PROVIDER, ключ API, TELEGRAM_*, STEAM_ID, APP_ID, THRESHOLD_PERCENT
 ```
 
 ## Запуск без Docker
@@ -49,7 +51,9 @@ cp .env.example .env
 
 | Переменная | Описание |
 |------------|----------|
-| `STEAM_API_KEY` | Ключ API (SteamApis и т.п.) |
+| `STEAM_PROVIDER` | `steamapis` или `steam_official` |
+| `STEAM_API_KEY` | Ключ SteamApis (обязателен при `STEAM_PROVIDER=steamapis`) |
+| `STEAM_WEB_API_KEY` | Бесплатный ключ Steam (обязателен при `STEAM_PROVIDER=steam_official`; получить: https://steamcommunity.com/dev/apikey) |
 | `TELEGRAM_BOT_TOKEN` | Токен бота Telegram |
 | `TELEGRAM_CHAT_ID` | ID чата для уведомлений |
 | `STEAM_ID` | Steam ID 64 (инвентарь для отслеживания) |
@@ -62,7 +66,7 @@ cp .env.example .env
 ## Структура
 
 - `config/` — настройки из .env
-- `steam/` — запрос инвентаря и цен (SteamApis)
+- `steam/` — провайдеры инвентаря и цен (SteamApis или Steam Official)
 - `storage/` — хранение последних цен (SQLite)
 - `notifier/` — отправка в Telegram
 - `watcher/` — цикл: инвентарь → цены → сравнение → уведомления
