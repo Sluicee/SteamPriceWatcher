@@ -39,11 +39,7 @@ class Settings:
         steam_web_api_key = os.getenv("STEAM_WEB_API_KEY", "").strip()
         if steam_provider == PROVIDER_STEAMAPIS and not steam_api_key:
             raise ValueError("STEAM_API_KEY is required when STEAM_PROVIDER=steamapis")
-        if steam_provider == PROVIDER_STEAM_OFFICIAL and not steam_web_api_key:
-            raise ValueError(
-                "STEAM_WEB_API_KEY is required when STEAM_PROVIDER=steam_official "
-                "(get a free key at https://steamcommunity.com/dev/apikey)"
-            )
+        # STEAM_WEB_API_KEY optional for steam_official (inventory uses Community API without key)
 
         telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
         telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()

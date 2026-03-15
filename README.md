@@ -7,7 +7,7 @@
 - Python 3.10+ (или Docker)
 - Источник данных Steam (один из двух):
   - **steamapis** — [SteamApis](https://steamapis.com): один ключ, мало запросов, но бесплатный лимит маленький
-  - **steam_official** — бесплатный [Steam Web API key](https://steamcommunity.com/dev/apikey) + запросы к маркету по каждому предмету (с паузой между запросами)
+  - **steam_official** — без ключа: инвентарь через [Steam Community Inventory](https://steamcommunity.com/inventory), цены через запросы к маркету по каждому предмету (с паузой между запросами)
 - Telegram-бот (токен от @BotFather) и chat_id для уведомлений
 
 ## Запуск в Docker (рекомендуется)
@@ -53,7 +53,7 @@ cp .env.example .env
 |------------|----------|
 | `STEAM_PROVIDER` | `steamapis` или `steam_official` |
 | `STEAM_API_KEY` | Ключ SteamApis (обязателен при `STEAM_PROVIDER=steamapis`) |
-| `STEAM_WEB_API_KEY` | Бесплатный ключ Steam (обязателен при `STEAM_PROVIDER=steam_official`; получить: https://steamcommunity.com/dev/apikey) |
+| `STEAM_WEB_API_KEY` | Не используется для `steam_official` (можно не задавать) |
 | `TELEGRAM_BOT_TOKEN` | Токен бота Telegram |
 | `TELEGRAM_CHAT_ID` | ID чата для уведомлений |
 | `STEAM_ID` | Steam ID 64 (инвентарь для отслеживания) |

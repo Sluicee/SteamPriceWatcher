@@ -1,4 +1,4 @@
-"""Steam Official provider: inventory via Steam Web API, prices via Community Market priceoverview."""
+"""Steam Official provider: inventory via Steam Community API, prices via Community Market priceoverview."""
 
 import time
 import urllib.parse
@@ -6,8 +6,9 @@ from typing import Any
 
 import requests
 
-# Steam Web API (inventory + schema)
-STEAM_API_BASE = "https://api.steampowered.com"
+# Steam Community inventory (no key; works for CS2/730 where GetSchema v2 returns 410 Gone)
+INVENTORY_BASE = "https://steamcommunity.com/inventory"
+DEFAULT_CONTEXT_ID = 2
 # Community Market (no key)
 MARKET_PRICE_BASE = "https://steamcommunity.com/market/priceoverview/"
 # Delay between price requests to reduce 429 risk (seconds)
@@ -27,69 +28,64 @@ def _parse_price_string(s: str) -> float:
         return 0.0
 
 
-def _fetch_schema(app_id: int, api_key: str) -> dict[str, dict[str, Any]]:
-    """Fetch item schema; return dict classid -> {market_hash_name, marketable}."""
-    url = f"{STEAM_API_BASE}/IEconItems_{app_id}/GetSchema/v2/"
-    params = {"key": api_key}
-    resp = requests.get(url, params=params, timeout=30)
-    resp.raise_for_status()
-    data: dict[str, Any] = resp.json()
-    result = data.get("result") or {}
-    items = result.get("items") or []
-    out: dict[str, dict[str, Any]] = {}
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        classid = item.get("classid") or item.get("id")
-        if not classid:
-            continue
-        name = (
-            item.get("market_hash_name")
-            or item.get("item_name")
-            or item.get("name")
-            or ""
-        )
-        if not name or not isinstance(name, str):
-            continue
-        marketable = item.get("marketable") == 1 or item.get("marketable") is True
-        out[str(classid)] = {"market_hash_name": name, "marketable": marketable}
-    return out
-
-
-def _fetch_player_items(
-    app_id: int, steam_id: str, api_key: str
-) -> list[dict[str, Any]]:
-    """Fetch player inventory items; return list of item dicts with classid."""
-    url = f"{STEAM_API_BASE}/IEconItems_{app_id}/GetPlayerItems/v1/"
-    params = {"key": api_key, "steamid": steam_id}
-    resp = requests.get(url, params=params, timeout=30)
-    resp.raise_for_status()
-    data: dict[str, Any] = resp.json()
-    result = data.get("result") or {}
-    items = result.get("items") or []
-    return items if isinstance(items, list) else []
-
-
-def _inventory_names_from_schema_and_items(
-    schema: dict[str, dict[str, Any]], raw_items: list[Any]
+def _fetch_community_inventory(
+    steam_id: str, app_id: int, context_id: int = DEFAULT_CONTEXT_ID
 ) -> list[str]:
-    """Map raw player items to unique market_hash_names (marketable only)."""
+    """
+    Fetch inventory via Steam Community API (no key).
+    Returns unique market_hash_name for marketable items. Handles pagination.
+    """
+    url = f"{INVENTORY_BASE}/{steam_id}/{app_id}/{context_id}"
+    params: dict[str, str | int] = {"l": "english"}
     seen: set[str] = set()
-    names: list[str] = []
-    for it in raw_items:
-        if not isinstance(it, dict):
-            continue
-        classid = it.get("classid") or it.get("id")
-        if not classid:
-            continue
-        info = schema.get(str(classid))
-        if not info or not info.get("marketable"):
-            continue
-        name = info.get("market_hash_name")
-        if name and name not in seen:
-            seen.add(name)
-            names.append(name)
-    return names
+    result: list[str] = []
+
+    while True:
+        try:
+            resp = requests.get(url, params=params, timeout=30)
+            resp.raise_for_status()
+            data: dict[str, Any] = resp.json()
+        except (requests.RequestException, ValueError) as e:
+            raise RuntimeError(f"Failed to fetch Steam Community inventory: {e}") from e
+
+        if data.get("success") != 1:
+            return []
+
+        assets = data.get("assets") or []
+        descriptions = data.get("descriptions") or []
+        desc_by_key: dict[tuple[str, str], dict[str, Any]] = {}
+        for d in descriptions:
+            if not isinstance(d, dict):
+                continue
+            cid = d.get("classid")
+            iid = d.get("instanceid", "0")
+            if cid is not None:
+                desc_by_key[(str(cid), str(iid))] = d
+
+        for asset in assets:
+            if not isinstance(asset, dict):
+                continue
+            cid = asset.get("classid")
+            iid = asset.get("instanceid", "0")
+            if cid is None:
+                continue
+            key = (str(cid), str(iid))
+            desc = desc_by_key.get(key) or desc_by_key.get((str(cid), "0"))
+            if not desc or desc.get("marketable") != 1:
+                continue
+            name = desc.get("market_hash_name")
+            if name and isinstance(name, str) and name not in seen:
+                seen.add(name)
+                result.append(name)
+
+        if not data.get("more_items"):
+            break
+        last = data.get("last_assetid")
+        if not last:
+            break
+        params["start_assetid"] = last
+
+    return result
 
 
 def _fetch_price_for_item(
@@ -142,19 +138,14 @@ def _fetch_prices_for_items(
 
 
 class SteamOfficialProvider:
-    """Provider using Steam Web API (inventory + schema) and Community Market priceoverview."""
+    """Provider using Steam Community inventory API and Community Market priceoverview (no paid key)."""
 
     def __init__(self, api_key: str) -> None:
-        self._api_key = api_key
-        self._schema_cache: dict[int, dict[str, dict[str, Any]]] = {}
+        self._api_key = api_key  # kept for config compatibility; inventory uses Community API (no key)
 
     def get_inventory_market_names(self, steam_id: str, app_id: int) -> list[str]:
         """Return unique market_hash_name list for marketable items in inventory."""
-        if app_id not in self._schema_cache:
-            self._schema_cache[app_id] = _fetch_schema(app_id, self._api_key)
-        schema = self._schema_cache[app_id]
-        raw_items = _fetch_player_items(app_id, steam_id, self._api_key)
-        return _inventory_names_from_schema_and_items(schema, raw_items)
+        return _fetch_community_inventory(steam_id, app_id)
 
     def get_market_prices(
         self,
